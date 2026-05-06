@@ -1,82 +1,125 @@
+# Auto generated configuration file
+# using: 
+# Revision: 1.19 
+# Source: /local/reps/CMSSW/CMSSW/Configuration/Applications/python/ConfigBuilder.py,v 
+# with command line options: --python_filename recoStepUL2018.py --eventcontent AODSIM --customise Configuration/DataProcessing/Utils.addMonitoring --datatier AODSIM --fileout file:BPH-RunIISummer20UL18RECO-00125.root --conditions 106X_upgrade2018_realistic_v11_L1v1 --step RAW2DIGI,L1Reco,RECO,RECOSIM,EI --geometry DB:Extended --filein file:HAA_PGun_HLT.root --era Run2_2018 --runUnscheduled --no_exec --mc -n 100 --procModifiers premix_stage2 --nThreads 8
 import FWCore.ParameterSet.Config as cms
 
-process = cms.Process('RECO')
+from Configuration.Eras.Era_Run2_2018_cff import Run2_2018
+from Configuration.ProcessModifiers.premix_stage2_cff import premix_stage2
 
-# --- ALIGNED STANDARD SEQUENCES ---
+process = cms.Process('RECO',Run2_2018,premix_stage2)
+
+# import of standard configurations
 process.load('Configuration.StandardSequences.Services_cff')
 process.load('SimGeneral.HepPDTESSource.pythiapdt_cfi')
 process.load('FWCore.MessageService.MessageLogger_cfi')
 process.load('Configuration.EventContent.EventContent_cff')
+process.load('SimGeneral.MixingModule.mixNoPU_cfi')
 process.load('Configuration.StandardSequences.GeometryRecoDB_cff')
 process.load('Configuration.StandardSequences.MagneticField_cff')
 process.load('Configuration.StandardSequences.RawToDigi_cff')
 process.load('Configuration.StandardSequences.L1Reco_cff')
 process.load('Configuration.StandardSequences.Reconstruction_cff')
+process.load('Configuration.StandardSequences.RecoSim_cff')
+process.load('CommonTools.ParticleFlow.EITopPAG_cff')
 process.load('Configuration.StandardSequences.EndOfProcess_cff')
 process.load('Configuration.StandardSequences.FrontierConditions_GlobalTag_cff')
 
-process.maxEvents = cms.untracked.PSet(input = cms.untracked.int32(-1))
-process.MessageLogger.cerr.FwkReport.reportEvery = 1
+process.maxEvents = cms.untracked.PSet(
+    input = cms.untracked.int32(-1)
+)
 
-# --- OPTIONS (Fixes the ConfigFileReadError) ---
-process.options = cms.untracked.PSet()
-
-# --- INPUT SOURCE ---
+import FWCore.ParameterSet.VarParsing as VarParsing
+options = VarParsing.VarParsing ('analysis')
+options.register ('mass',
+                  1, # default value
+                  VarParsing.VarParsing.multiplicity.singleton, # singleton or list
+                  VarParsing.VarParsing.varType.float,          # string, int, or float
+                  "Mass of A")
+options.register ('clusterID',
+                  '123', # default value
+                  VarParsing.VarParsing.multiplicity.singleton, # singleton or list
+                  VarParsing.VarParsing.varType.string,          # string, int, or float
+                  "Unique ID for every job")
+options.parseArguments()
+# Input source
 process.source = cms.Source("PoolSource",
-    fileNames = cms.untracked.vstring('file:DP1_folder/sample_paper_data_M0.1_1k_events_DIGI.root'),
+    fileNames = cms.untracked.vstring('file:DP1_folder/AToGG_GEN_E10_new_DIGI.root'),
     secondaryFileNames = cms.untracked.vstring()
 )
 
-# --- GLOBAL TAG ALIGNMENT ---
-from Configuration.AlCa.GlobalTag import GlobalTag
-process.GlobalTag = GlobalTag(process.GlobalTag, 'auto:run1_mc', '')
+process.options = cms.untracked.PSet(
 
-# --- OUTPUT DEFINITION ---
-process.RECOSIMoutput = cms.OutputModule("PoolOutputModule",
-    dataset = cms.untracked.PSet(
-        dataTier = cms.untracked.string('RECO'),
-        filterName = cms.untracked.string('')
-    ),
-    fileName = cms.untracked.string('file:DP1_folder/sample_paper_data_M0.1_1k_events_RECO.root'),
-    outputCommands = cms.untracked.vstring('keep *'),
-    splitLevel = cms.untracked.int32(0)
 )
 
-# --- RECO PATHS ---
+# Production Info
+process.configurationMetadata = cms.untracked.PSet(
+    annotation = cms.untracked.string('--python_filename nevts:100'),
+    name = cms.untracked.string('Applications'),
+    version = cms.untracked.string('$Revision: 1.19 $')
+)
+
+# Output definition
+
+process.AODSIMoutput = cms.OutputModule("PoolOutputModule",
+    #compressionAlgorithm = cms.untracked.string('LZMA'),
+    #compressionLevel = cms.untracked.int32(4),
+    dataset = cms.untracked.PSet(
+        dataTier = cms.untracked.string('AODSIM'),
+        filterName = cms.untracked.string('')
+    ),
+    eventAutoFlushCompressedSize = cms.untracked.int32(31457280),
+    fileName = cms.untracked.string('file:DP1_folder/AToGG_GEN_E10_new_RECO.root'),
+    outputCommands = process.AODSIMEventContent.outputCommands
+)
+
+# Additional output definition
+
+# Other statements
+from Configuration.AlCa.GlobalTag import GlobalTag
+process.GlobalTag = GlobalTag(process.GlobalTag, '106X_upgrade2018_realistic_v11_L1v1', '')
+
+# Path and EndPath definitions
 process.raw2digi_step = cms.Path(process.RawToDigi)
 process.L1Reco_step = cms.Path(process.L1Reco)
 process.reconstruction_step = cms.Path(process.reconstruction)
+process.recosim_step = cms.Path(process.recosim)
+process.eventinterpretaion_step = cms.Path(process.EIsequence)
 process.endjob_step = cms.EndPath(process.endOfProcess)
-process.RECOSIMoutput_step = cms.EndPath(process.RECOSIMoutput)
+process.AODSIMoutput_step = cms.EndPath(process.AODSIMoutput)
 
-# --- SCHEDULE ---
-process.schedule = cms.Schedule(
-    process.raw2digi_step,
-    process.L1Reco_step,
-    process.reconstruction_step,
-    process.endjob_step,
-    process.RECOSIMoutput_step
-)
+# Schedule definition
+process.schedule = cms.Schedule(process.raw2digi_step,process.L1Reco_step,process.reconstruction_step,process.recosim_step,process.eventinterpretaion_step,process.endjob_step,process.AODSIMoutput_step)
+from PhysicsTools.PatAlgos.tools.helpers import associatePatAlgosToolsTask
+associatePatAlgosToolsTask(process)
 
-# =========================================================================
-# SURGICAL RECO KILL SWITCH (Crucial for 10_6_X Run 1)
-# =========================================================================
+#Setup FWK for multithreaded
+process.options.numberOfThreads=cms.untracked.uint32(8)
+process.options.numberOfStreams=cms.untracked.uint32(0)
+process.options.numberOfConcurrentLuminosityBlocks=cms.untracked.uint32(1)
 
-# 1. Disable GEM/ME0 in Muon Reconstruction
-if hasattr(process, 'muons1stStep'):
-    process.muons1stStep.FillGEMHits = cms.bool(False)
-    process.muons1stStep.FillME0Hits = cms.bool(False)
+# customisation of the process.
 
-# 2. Prevent GEM prefetching in Track Associators
-if hasattr(process, 'trackAssociatorByHits'):
-    process.trackAssociatorByHits.useGEM = cms.bool(False)
-    process.trackAssociatorByHits.useME0 = cms.bool(False)
+# Automatic addition of the customisation function from Configuration.DataProcessing.Utils
+from Configuration.DataProcessing.Utils import addMonitoring 
 
-# 3. Clean GEM from local muon reconstruction if it exists in the path
-for mod in ['gemRecHits', 'gemSegments', 'me0RecHits', 'me0Segments']:
-    if hasattr(process, mod):
-        process.reconstruction.remove(getattr(process, mod))
+#call to customisation function addMonitoring imported from Configuration.DataProcessing.Utils
+process = addMonitoring(process)
 
-# --- EARLY DELETION (Must be after Paths and Schedule) ---
-#from Configuration.StandardSequences.earlyDeleteSettings_cff import customiseEarlyDelete
-#process = customiseEarlyDelete(process)
+# End of customisation functions
+#do not add changes to your config after this point (unless you know what you are doing)
+from FWCore.ParameterSet.Utilities import convertToUnscheduled
+process=convertToUnscheduled(process)
+
+
+# Customisation from command line
+
+#Have logErrorHarvester wait for the same EDProducers to finish as those providing data for the OutputModule
+from FWCore.Modules.logErrorHarvester_cff import customiseLogErrorHarvesterUsingOutputCommands
+process = customiseLogErrorHarvesterUsingOutputCommands(process)
+
+# Add early deletion of temporary data products to reduce peak memory need
+from Configuration.StandardSequences.earlyDeleteSettings_cff import customiseEarlyDelete
+process = customiseEarlyDelete(process)
+# End adding early deletion
